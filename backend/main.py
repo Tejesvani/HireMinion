@@ -278,6 +278,22 @@ async def download_pdf(filename: str):
     return {"success": False, "error": "PDF not found"}
 
 
+@app.get("/api/retrieve-output")
+async def retrieve_output():
+    """Retrieve specifically the response field from custom output"""
+    try:
+        custom_path = os.path.join(DOWNLOADED_DIR, "custom_output.json")
+        if os.path.exists(custom_path):
+            with open(custom_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                # Get the 'response' value specifically
+                content = data.get("response", "No response field found in file")
+                return {"success": True, "content": content}
+        return {"success": False, "error": "No custom output found"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
 @app.get("/api/custom-output")
 async def get_custom_output():
     """Get the custom prompt output"""

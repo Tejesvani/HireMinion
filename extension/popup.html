@@ -184,7 +184,7 @@
     .button-group {
       display: flex;
       gap: 8px;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
     
     button {
@@ -223,6 +223,15 @@
       box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
     }
     
+    #retrieveBtn {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+    
+    #retrieveBtn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    }
+    
     #clearBtn {
       background: #6b7280;
       flex: 0.6;
@@ -230,6 +239,21 @@
     
     #clearBtn:hover {
       background: #4b5563;
+    }
+    
+    #copyBtn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 4px 10px;
+      font-size: 11px;
+      border-radius: 6px;
+      color: #e0e0e0;
+      flex: none;
+      width: auto;
+    }
+    
+    #copyBtn:hover {
+      background: rgba(255, 255, 255, 0.2);
     }
     
     button:disabled {
@@ -454,6 +478,13 @@
           <span>💾</span>
           <span>Store</span>
         </button>
+      </div>
+      
+      <div class="button-group">
+        <button id="retrieveBtn">
+          <span>📥</span>
+          <span>Retrieve</span>
+        </button>
         <button id="clearBtn">
           <span>🗑️</span>
           <span>Clear</span>
@@ -472,9 +503,12 @@
           <span class="output-label-icon">⚡</span>
           <span>Output Terminal</span>
         </label>
-        <div class="output-status">
-          <span class="status-dot"></span>
-          <span>Ready</span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button id="copyBtn" title="Copy output to clipboard">📋 Copy</button>
+          <div class="output-status">
+            <span class="status-dot"></span>
+            <span>Ready</span>
+          </div>
         </div>
       </div>
       <textarea id="outputBox" readonly placeholder="// Results will appear here after processing...&#10;// Select a resume and choose your options above&#10;// Click Scrape to analyze the current job posting"></textarea>

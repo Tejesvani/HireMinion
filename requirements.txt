@@ -12,3 +12,9 @@ python-dotenv==1.2.1
 websockets==15.0.1
 PyMuPDF==1.26.7
 supabase==2.27.0
+selenium==4.41.0
+winrt-runtime==3.2.1
+winsdk==1.0.0b10
+google-auth==2.47.0
+google-auth-oauthlib==1.2.4
+google-api-python-client==2.190.0

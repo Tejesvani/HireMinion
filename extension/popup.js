@@ -134,9 +134,6 @@ document.getElementById('scrapeBtn').addEventListener('click', async () => {
     const response = await chrome.runtime.sendMessage({ action: 'scrape', options });
     
     if (response.success) {
-      showSuccess('Complete!');
-      
-      let output = '';
       let generatedFiles = [];
       
       // Resume PDF
@@ -151,28 +148,48 @@ document.getElementById('scrapeBtn').addEventListener('click', async () => {
         generatedFiles.push(`✉️ ${coverName}`);
       }
       
-      // Show generated files
+      // Show generated files in status
+      let statusMsg = 'Complete!';
       if (generatedFiles.length > 0) {
-        output += 'Generated:\n';
-        output += generatedFiles.join('\n') + '\n';
-        output += `\n📁 Output: ${response.output_folder}\n`;
+        statusMsg = `Generated: ${generatedFiles.join(', ')}`;
       }
+      showSuccess(statusMsg);
       
-      // Custom Output
+      // Custom Output only in text area
       if (response.custom_output) {
-        if (output) output += '\n';
-        output += '--- Custom Output ---\n';
-        output += response.custom_output;
-      }
-      
-      if (output) {
-        setOutput(output);
+        setOutput(response.custom_output);
+      } else {
+        clearOutput();
       }
     } else {
       showError(response.error || response.message || 'Unknown error');
       if (response.error_details) {
         setOutput(response.error_details);
       }
+    }
+  } catch (e) {
+    showError('Connection failed');
+    setOutput(e.message);
+  }
+
+  setButtons(false);
+});
+
+// Retrieve Custom Output
+document.getElementById('retrieveBtn').addEventListener('click', async () => {
+  setButtons(true);
+  clearOutput();
+  showProgress('Retrieving...');
+
+  try {
+    const response = await fetch('http://localhost:8000/api/retrieve-output');
+    const data = await response.json();
+
+    if (data.success) {
+      showSuccess('Retrieved!');
+      setOutput(data.content);
+    } else {
+      showError(data.error || 'No output found');
     }
   } catch (e) {
     showError('Connection failed');
@@ -244,6 +261,21 @@ document.getElementById('storeBtn').addEventListener('click', async () => {
   }
 
   setButtons(false);
+});
+
+// Copy Output to Clipboard
+document.getElementById('copyBtn').addEventListener('click', () => {
+  if (!outputBox.value) return;
+  
+  outputBox.select();
+  navigator.clipboard.writeText(outputBox.value).then(() => {
+    const btn = document.getElementById('copyBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '✅ Copied';
+    setTimeout(() => {
+      btn.innerHTML = originalText;
+    }, 2000);
+  });
 });
 
 // Clear All

@@ -1,0 +1,11 @@
+.venv\Scripts\activate
+
+
+python backend/main.py
+
+
+python backend/email_orchestrator.py --full
+
+
+python backend/email_orchestrator.py
+python backend/email_reach/send_email.py
