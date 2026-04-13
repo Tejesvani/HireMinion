@@ -12,7 +12,7 @@
 
 ---
 
-## 🎬 See It In Action
+<!-- ## 🎬 See It In Action
 
 <p align="center">
   <img src="screenshots/gif1.gif" alt="HireMinion Demo" width="700"/>
@@ -22,7 +22,7 @@
   <img src="screenshots/screenshot1.png" alt="HireMinion Extension" width="400"/>
 </p>
 
----
+--- -->
 
 ## ✨ What is HireMinion?
 
@@ -35,7 +35,10 @@ Simply browse to any job posting, click a button, and watch the magic happen:
 | Find a job you like | Read & understand the job requirements |
 | Click one button | Customize your resume to match the job |
 | Apply with confidence | Generate a matching cover letter |
-| | Track all your applications |
+| Connect with the hiring team | Write a personalized LinkedIn connection request |
+| Reach out via InMail | Draft a targeted LinkedIn InMail message |
+| Answer application questions | Generate answers grounded in your tailored resume |
+| Application Tracking | Track all your applications |
 
 ---
 
@@ -44,17 +47,31 @@ Simply browse to any job posting, click a button, and watch the magic happen:
 ### 📄 Smart Resume Tailoring
 Your resume automatically highlights the skills and experience that matter most for each job. No more manual editing!
 
+### 🗂️ Master Resume → Single Page
+Maintain one comprehensive **master resume** with all your experience and projects. HireMinion selects and tailors the most relevant content for each job and compiles it into a tight one-page PDF — no manual pruning required.
+
+> Name your master template file with `MASTER` in the filename (e.g., `YourName_MASTER.tex`) and HireMinion activates master-mode selection automatically.
+
 ### ✉️ Cover Letter Generation
 Get a professionally written cover letter that speaks directly to the job requirements — in seconds.
 
+### 🤝 LinkedIn Connection Request
+Generate a personalized, under-300-character connection message addressed to the right person at the company — ready to copy and send directly from the extension.
+
+### 📬 LinkedIn InMail
+Get a complete InMail draft — subject line and message body — tailored to the role and company. Copy it straight into LinkedIn.
+
+### 🙋 Custom Application Q&A
+Got application questions like *"Why do you want to work here?"* or *"Describe a challenging project"*? Type the question in the extension and get an answer grounded in your tailored resume and the actual job description — specific, first-person, no generic filler.
+
 ### 💾 Application Tracking
-Never lose track of where you applied. HireMinion saves every job with one click.
+Never lose track of where you applied. HireMinion saves every job with one click, recording the role, company, URL, and the resume you submitted.
+
+### 📂 Retrieve Past Submissions
+Look up any job you previously applied for — HireMinion surfaces the stored job details and resume snapshot so you can review exactly what you sent before an interview.
 
 ### 🎨 Beautiful PDF Output
 Professional LaTeX-compiled PDFs that look polished and ATS-friendly.
-
-### 💬 Custom AI Prompts
-Need something specific? Ask HireMinion anything about the job posting.
 
 ---
 
@@ -64,14 +81,15 @@ Need something specific? Ask HireMinion anything about the job posting.
 ┌────────────────────────────────────────────────────────────┐
 │                                                            │
 │   1️⃣  Browse to any job posting                            │
-│                    ⬇️                                       │
+│                    ⬇️                                      │
 │   2️⃣  Click the HireMinion extension                       │
-│                    ⬇️                                       │
-│   3️⃣  Select your resume & preferences                     │
-│                    ⬇️                                       │
+│                    ⬇️                                      │
+│   3️⃣  Select your resume & choose what to generate         │
+│                    ⬇️                                      │
 │   4️⃣  Hit "Scrape" and wait a few seconds                  │
-│                    ⬇️                                       │
-│   5️⃣  Download your tailored resume & cover letter! 📥     │
+│                    ⬇️                                      │
+│   5️⃣  Download your tailored resume, cover letter,         │
+│       connection request, InMail, and Q&A answers! 📥      │
 │                                                            │
 └────────────────────────────────────────────────────────────┘
 ```
@@ -111,14 +129,14 @@ HireMinion works on virtually any job posting site:
 ## Step 1: Download HireMinion
 
 **Option A: Download ZIP**
-1. Go to [**HireMinion on GitHub**](https://github.com/moheesh/HireMinion_AI_Job_Application_Assist)
+1. Go to [**HireMinion on GitHub**](https://github.com/Tejesvani/HireMinion.git)
 2. Click the green **"Code"** button
 3. Select **"Download ZIP"**
 4. Extract the ZIP file to a folder (e.g., `Documents/HireMinion`)
 
 **Option B: Using Git** (if you have it installed)
 ```
-git clone https://github.com/moheesh/HireMinion_AI_Job_Application_Assist.git
+git clone https://github.com/Tejesvani/HireMinion.git
 ```
 
 ---
@@ -131,7 +149,7 @@ git clone https://github.com/moheesh/HireMinion_AI_Job_Application_Assist.git
 
 2. **Navigate to the HireMinion folder:**
    ```
-   cd path/to/HireMinion_AI_Job_Application_Assist
+   cd path/to/HireMinion
    ```
 
 3. **Create a virtual environment:**
@@ -218,6 +236,14 @@ You have **two options** to add your resume:
 
 > ✅ This creates both `.json` (your data) and `.tex` (the template) files
 
+#### Setting Up a Master Resume
+
+If you have a comprehensive resume with all your experience, extract it and include `MASTER` in the filename:
+```
+python backend/resume_extractor.py --resume YourName_MASTER.pdf
+```
+HireMinion will automatically activate master-mode selection when this template is chosen — picking and tailoring the most relevant roles and projects from your full history to fit one page.
+
 ---
 
 ### Option B: Use Pre-Built Template (Manual) ✍️
@@ -261,7 +287,7 @@ You have **two options** to add your resume:
 
 2. **Navigate to HireMinion folder:**
    ```
-   cd path/to/HireMinion_AI_Job_Application_Assist
+   cd path/to/HireMinion
    ```
 
 3. **Activate virtual environment:**
@@ -294,23 +320,47 @@ You have **two options** to add your resume:
 1. **Go to any job posting** (LinkedIn, Indeed, company website, etc.)
 2. **Click the HireMinion icon** in your browser
 3. **Select your resume** from the dropdown
-4. **Check what you want:**
+4. **Check what you want to generate:**
    - ☑️ **Resume** — Tailored resume PDF
    - ☑️ **Cover Letter** — Matching cover letter
-   - ☑️ **Custom Prompt** — Ask anything about the job
+   - ☑️ **Connection Request** — LinkedIn connection message (≤300 chars)
+   - ☑️ **InMail** — LinkedIn InMail subject + body
 5. **Click "Scrape"** and wait 10-30 seconds
-6. **Find your files** in the `output` folder!
+6. All generated content appears directly in the extension — copy or download as needed
+
+### Using a Master Resume
+
+Select your `MASTER` resume from the dropdown before clicking Scrape. HireMinion will automatically select the most relevant roles, projects, and skills from your full history and compile them into a tailored one-page resume — no manual editing required.
+
+### Answering Application Questions
+
+After scraping a job, use the **Q&A** section in the extension:
+1. Check the **Q&A** checkbox to expand the input field
+2. Type your application question (e.g., *"Why do you want to work here?"*)
+3. Click **"Answer"**
+4. Get a first-person answer grounded in your tailored resume and the actual job description
+
+### Regenerating Without Re-Scraping
+
+Already scraped a job and want to regenerate with different options? Click **"Generate"** — it reruns generation on the already-loaded job without scraping the page again.
 
 ### Tracking Applications
 
 After you apply to a job:
 1. Stay on the job posting page
 2. Click **"Store"** in HireMinion
-3. The job is saved to your application tracker ✅
+3. The job is saved to your application tracker with the role, company, and resume used ✅
+
+### Retrieving a Past Submission
+
+To look up a job you previously applied for:
+1. Navigate to the original job posting URL
+2. Click **"Retrieve"** in HireMinion
+3. HireMinion surfaces the stored job details and resume content — useful for interview prep
 
 ### Clearing Data
 
-Click **"Clear"** to reset and start fresh.
+Click **"Clear"** to reset and start fresh for the next application.
 
 ---
 
@@ -327,11 +377,11 @@ Click **"Clear"** to reset and start fresh.
 ## ❓ Troubleshooting
 
 ### "Connection failed" error
-✅ Make sure the backend is running (Step 6)
+✅ Make sure the backend is running (`python backend/main.py`)
 ✅ Check that you see "Backend running on port 8000"
 
 ### "No resumes found"
-✅ Make sure your `.tex` file is in the `data/` folder
+✅ Make sure your `.tex` file is in the `templates/` folder
 ✅ Restart the backend server
 
 ### Extension not working
@@ -342,17 +392,21 @@ Click **"Clear"** to reset and start fresh.
 ✅ Try running the resume extractor again
 ✅ Check the `templates/` folder for your `.json` file and edit if needed
 
+### Connection request or InMail is empty
+✅ Make sure the **Connection Request** or **InMail** checkbox was checked before clicking Scrape
+✅ Click **"Generate"** to regenerate with those options enabled without re-scraping
+
 ---
 
 ## 💡 Pro Tips
 
 1. **Keep the backend running** in a terminal window while job hunting
 2. **Pin the extension** for quick access
-3. **Use Custom Prompt** to ask questions like:
-   - "What skills should I emphasize?"
-   - "Summarize the key requirements"
-   - "What's the salary range?"
-4. **Check your tailored resume** before sending — AI is helpful but not perfect!
+3. **Use a Master Resume** for roles outside your primary track — let HireMinion pick and tailor from your full history
+4. **Check all boxes** on first run for a complete application package in one click
+5. **Use Q&A** for every application question — answers are specific to that company and role, not generic
+6. **Click Store immediately after applying** — it records the URL, role, company, and resume used, so you can retrieve the exact details before an interview
+7. **Check your tailored resume** before sending — AI is helpful but not perfect!
 
 ---
 
