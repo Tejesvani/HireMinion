@@ -41,9 +41,17 @@ def preprocess_data(data: dict) -> dict:
     """Preprocess JSON data before rendering."""
     # Convert skills dict to list of tuples for easier iteration
     if 'skills' in data and isinstance(data['skills'], dict):
+        # Remove certification key from skills dict — certifications
+        # render from their own section, never from the skills block
+        skills_clean = {
+            k: v for k, v in data['skills'].items()
+            if 'certif' not in k.lower()
+        }
+        data['skills'] = skills_clean
         data['skills_list'] = [
-            (format_skill_key(k), v) 
-            for k, v in data['skills'].items()
+            (format_skill_key(k), v if isinstance(v, str) else ', '.join(v))
+            for k, v in skills_clean.items()
+            if v  # skip empty values
         ]
     return data
 
@@ -155,33 +163,59 @@ def render_template(
 
 
 def compile_to_pdf(latex_content: str, output_name: str) -> Path:
-    api_url = "https://latexonline.cc/compile"
-    
-    params = {
-        "text": latex_content,
-        "command": "pdflatex",
-        "download": f"{output_name}.pdf"
-    }
-    
     print("Compiling LaTeX online...")
-    
+
+    output_path = OUTPUT_DIR / f"{output_name}.pdf"
+    debug_path = OUTPUT_DIR / "debug_rendered.tex"
+    debug_path.write_text(latex_content, encoding="utf-8")
+
+    # Attempt 1 — latex.ytotech.com
     try:
-        response = requests.get(api_url, params=params, timeout=120)
-        
-        if response.status_code == 200 and response.content[:4] == b'%PDF':
-            output_path = OUTPUT_DIR / f"{output_name}.pdf"
+        response = requests.post(
+            "https://latex.ytotech.com/builds/sync",
+            json={
+                "compiler": "pdflatex",
+                "resources": [{"main": True, "content": latex_content}]
+            },
+            timeout=120
+        )
+        if response.status_code == 201 and response.content[:4] == b'%PDF':
             with open(output_path, "wb") as f:
                 f.write(response.content)
             print(f"✓ PDF saved to: {output_path}")
             return output_path
-        else:
-            print(f"Compilation failed. Status: {response.status_code}")
-            print(f"Response: {response.text[:500]}")
-            return None
-            
+        print(f"ytotech failed: {response.status_code} — {response.text[:300]}")
     except Exception as e:
-        print(f"Error: {e}")
-        return None
+        print(f"ytotech error: {e}")
+
+    # Attempt 2 — local pdflatex
+    try:
+        import subprocess, shutil, tempfile
+        if shutil.which("pdflatex"):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                tex_file = Path(tmpdir) / f"{output_name}.tex"
+                tex_file.write_text(latex_content, encoding="utf-8")
+                result = subprocess.run(
+                    ["pdflatex", "-interaction=nonstopmode", tex_file.name],
+                    cwd=tmpdir,
+                    capture_output=True,
+                    timeout=60
+                )
+                pdf_tmp = Path(tmpdir) / f"{output_name}.pdf"
+                if pdf_tmp.exists():
+                    import shutil as sh
+                    sh.copy(pdf_tmp, output_path)
+                    print(f"✓ PDF compiled locally: {output_path}")
+                    return output_path
+                print(f"Local pdflatex failed:\n{result.stdout.decode()[-800:]}")
+        else:
+            print("pdflatex not found locally — install with: brew install --cask mactex-no-gui")
+    except Exception as e:
+        print(f"Local pdflatex error: {e}")
+
+    print("✗ All PDF compilation attempts failed. Debug LaTeX saved to:", debug_path)
+    return None
+
 
 
 def compile_resume(

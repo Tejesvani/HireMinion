@@ -14,7 +14,7 @@ from pydantic import BaseModel
 
 # Import pipeline modules
 from cleaning import clean_file
-from gemini_client import tailor_resume
+from gemini_client import tailor_resume, answer_question
 from latex_compiler import auto_compile
 from cover_letter_compiler import auto_compile as auto_compile_cover
 from supabase_job_storage import JobStorage
@@ -70,6 +70,8 @@ def run_pipeline(options: dict):
         
         generate_resume = options.get("resume", False)
         generate_cover = options.get("coverLetter", False)
+        generate_connection = options.get("connectionRequest", False)
+        generate_inmail = options.get("inmail", False)
         
         # Step 1: Clean HTML
         print("\n[1/5] Cleaning HTML...")
@@ -156,11 +158,13 @@ def run_pipeline(options: dict):
         print("="*50)
         
         return {
-            "success": True, 
+            "success": True,
             "pdf_path": str(resume_pdf_path) if resume_pdf_path else None,
             "cover_pdf_path": str(cover_pdf_path) if cover_pdf_path else None,
             "output_folder": OUTPUT_DIR,
-            "custom_output": custom_output
+            "custom_output": custom_output,
+            "connection_request_path": str(DOWNLOADED_DIR + "/connection_request.json") if os.path.exists(os.path.join(DOWNLOADED_DIR, "connection_request.json")) else None,
+            "inmail_path": str(DOWNLOADED_DIR + "/inmail.json") if os.path.exists(os.path.join(DOWNLOADED_DIR, "inmail.json")) else None,
         }
             
     except Exception as e:
@@ -274,7 +278,12 @@ async def download_pdf(filename: str):
     """Download generated PDF"""
     pdf_path = os.path.join(OUTPUT_DIR, filename)
     if os.path.exists(pdf_path):
-        return FileResponse(pdf_path, media_type="application/pdf", filename=filename)
+        return FileResponse(
+            pdf_path,
+            media_type="application/pdf",
+            filename=filename,
+            headers={"Cache-Control": "no-store, no-cache, must-revalidate"}
+        )
     return {"success": False, "error": "PDF not found"}
 
 
@@ -290,6 +299,118 @@ async def retrieve_output():
                 content = data.get("response", "No response field found in file")
                 return {"success": True, "content": content}
         return {"success": False, "error": "No custom output found"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+class GenerateOnlyRequest(BaseModel):
+    options: dict = {}
+
+@app.post("/api/generate-only")
+async def generate_only(req: GenerateOnlyRequest):
+    """Generate documents using existing scraped job data — no re-scrape."""
+    try:
+        meta_path = os.path.join(DOWNLOADED_DIR, "metadata.json")
+        job_details_path = os.path.join(DOWNLOADED_DIR, "job_details.json")
+
+        if not os.path.exists(meta_path):
+            return {
+                "success": False,
+                "error": "No job loaded. Please scrape a job posting first."
+            }
+        if not os.path.exists(job_details_path):
+            return {
+                "success": False,
+                "error": "No job details found. Please scrape a job posting first."
+            }
+
+        # Load and merge options into existing metadata
+        with open(meta_path, "r", encoding="utf-8") as f:
+            existing_meta = json.load(f)
+
+        existing_meta.setdefault("options", {})
+        existing_meta["options"].update(req.options)
+
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump(existing_meta, f, indent=2)
+
+        options = existing_meta["options"]
+        generate_resume = options.get("resume", False)
+        generate_cover = options.get("coverLetter", False)
+
+        # Step 1 — Skip clean_file entirely, cleaned.txt already exists
+        print("\n" + "="*50)
+        print("GENERATE ONLY — Using existing job data")
+        print("="*50)
+
+        # Step 2 — Call Gemini with existing cleaned.txt
+        print("\n[1/3] Processing with Gemini...")
+        tailor_result = tailor_resume()
+        custom_output = tailor_result.get("custom_output")
+
+        # Step 3 — Compile PDFs only for requested features
+        resume_pdf_path = None
+        if generate_resume:
+            print("\n[2/3] Compiling Resume PDF...")
+            resume_pdf_path = auto_compile()
+            if not resume_pdf_path:
+                return {
+                    "success": False,
+                    "error": "Resume PDF compilation failed",
+                    "custom_output": custom_output
+                }
+        else:
+            print("\n[2/3] Skipping Resume PDF (not selected)")
+
+        cover_pdf_path = None
+        if generate_cover:
+            print("\n[3/3] Compiling Cover Letter PDF...")
+            cover_pdf_path = auto_compile_cover()
+            if not cover_pdf_path:
+                return {
+                    "success": False,
+                    "error": "Cover Letter PDF compilation failed",
+                    "custom_output": custom_output
+                }
+        else:
+            print("\n[3/3] Skipping Cover Letter PDF (not selected)")
+
+        print("\n" + "="*50)
+        print("Generate-only complete!")
+        print("="*50)
+
+        return {
+            "success": True,
+            "message": "Generated from existing job data",
+            "metadata": existing_meta,
+            "pdf_path": str(resume_pdf_path) if resume_pdf_path else None,
+            "cover_pdf_path": str(cover_pdf_path) if cover_pdf_path else None,
+            "custom_output": custom_output
+        }
+
+    except Exception as e:
+        print(f"\n✗ Generate-only error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+class QuestionRequest(BaseModel):
+    question: str
+
+@app.post("/api/answer-question")
+async def answer_question_endpoint(req: QuestionRequest):
+    """Answer a custom application question using current job context."""
+    try:
+        if not req.question or not req.question.strip():
+            return {"success": False, "error": "Question cannot be empty"}
+
+        # Check that job context exists
+        job_details_path = os.path.join(DOWNLOADED_DIR, "job_details.json")
+        if not os.path.exists(job_details_path):
+            return {"success": False, "error": "No job context found. Scrape a job posting first."}
+
+        answer = answer_question(req.question.strip())
+        return {"success": True, "answer": answer}
+
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -322,6 +443,8 @@ async def get_status():
         "has_tailored_cover": os.path.exists(tailored_cover_path),
         "has_job_details": os.path.exists(job_details_path),
         "has_custom_output": os.path.exists(custom_output_path),
+        "has_connection_request": os.path.exists(os.path.join(DOWNLOADED_DIR, "connection_request.json")),
+        "has_inmail": os.path.exists(os.path.join(DOWNLOADED_DIR, "inmail.json")),
         "output_pdfs": [f for f in os.listdir(OUTPUT_DIR) if f.endswith('.pdf')] if os.path.exists(OUTPUT_DIR) else []
     }
     
@@ -336,7 +459,19 @@ async def get_status():
     if status["has_custom_output"]:
         with open(custom_output_path, "r", encoding="utf-8") as f:
             status["custom_output"] = json.load(f)
-    
+
+    if status["has_tailored_cover"]:
+        with open(tailored_cover_path, "r", encoding="utf-8") as f:
+            status["tailored_cover"] = json.load(f)
+
+    if status["has_connection_request"]:
+        with open(os.path.join(DOWNLOADED_DIR, "connection_request.json"), "r") as f:
+            status["connection_request"] = json.load(f)
+
+    if status["has_inmail"]:
+        with open(os.path.join(DOWNLOADED_DIR, "inmail.json"), "r") as f:
+            status["inmail"] = json.load(f)
+
     return status
 
 

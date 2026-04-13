@@ -3,7 +3,11 @@
   "name": "HireMinion",
   "version": "1.0.0",
   "description": "Just like the minion but AI-powered for job assist",
-  "permissions": ["activeTab", "scripting", "tabs", "storage"],
+  "permissions": ["activeTab", "scripting", "tabs", "storage", "sidePanel"],
+  "host_permissions": ["<all_urls>"],
+  "side_panel": {
+    "default_path": "popup.html"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_title": "HireMinion",

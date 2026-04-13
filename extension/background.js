@@ -1,3 +1,6 @@
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
+  .catch(err => console.log('[HireMinion] sidePanel error:', err));
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'scrape') {
     handleScrape(request.options, sendResponse);

@@ -3,6 +3,8 @@ resume_extractor.py - Extract resume data from PDF using Gemini (Two-Step Approa
 Step 1: Extract JSON data from PDF
 Step 2: Generate LaTeX template that visually matches PDF with correct placeholders
 Updated to use new google-genai SDK
+
+python backend/resume_extractor.py --resume TejesvaniMupparaVijayaram.pdf
 """
 
 import os
@@ -294,6 +296,10 @@ STRICT RULES:
 6. For skills, categorize them exactly as shown in schema structure
 7. Use the extracted text for accurate spelling of names, emails, URLs, etc.
 8. For ALL URL fields, use the exact hyperlinks from the "HYPERLINKS FOUND IN PDF" section
+9. For projects: extract bullets as an array of 3-5 achievement strings (NOT a description paragraph).
+   Each bullet must contain: action verb + tool/technology + metric or outcome.
+   Do NOT extract a "description" string — only a "bullets" array.
+   Do NOT extract GitHub URLs or any project links.
 
 REQUIRED JSON SCHEMA (use these keys ONLY):
 {json_structure}
@@ -350,7 +356,6 @@ Return raw JSON only. No ```json blocks. No explanations before or after."""
     
     return validated_json
 
-
 # ============================================================
 # STEP 2: GENERATE LATEX FROM PDF + JSON
 # ============================================================
@@ -361,7 +366,7 @@ def step2_generate_latex(pdf_path: Path, json_data: dict, sample_tex: str) -> st
     print("\n" + "=" * 60)
     print("STEP 2: GENERATE LATEX TEMPLATE")
     print("=" * 60)
-    
+
     prompt = f"""You are an expert LaTeX developer creating a resume template.
 
 TASK: Create a LaTeX template that EXACTLY replicates the visual layout of the attached PDF resume, using the EXACT placeholder syntax from the sample template.
@@ -376,13 +381,13 @@ CRITICAL: COPY THESE SECTIONS EXACTLY - DO NOT MODIFY
 \\VAR{{personal_info.location}} \\, | \\, \\VAR{{personal_info.email}} \\, | \\, \\VAR{{personal_info.phone}} \\, | \\, \\href{{\\VAR{{personal_info.linkedin_url}}}}{{LinkedIn}} \\, | \\, \\href{{\\VAR{{personal_info.github_url}}}}{{GitHub}}
 \\end{{center}}
 
-2. SKILLS SECTION (copy EXACTLY - no extra line breaks):
-\\section{{Skills}}
-\\BLOCK{{for category, skill_list in skills_list}}\\textbf{{\\VAR{{category}}:}} \\VAR{{skill_list}}\\\\[1pt]
-\\BLOCK{{endfor}}\\textbf{{Certification:}} \\BLOCK{{for cert in certifications}}\\VAR{{cert.name}} (\\href{{\\VAR{{cert.url}}}}{{\\VAR{{cert.code}}}})\\BLOCK{{if not loop.last}}, \\BLOCK{{endif}}\\BLOCK{{endfor}}
+2. SKILLS SECTION (copy exactly — NO certification line, each category 1–1.5 lines):
+\\section{{SKILLS}}
+\\BLOCK{{for category, skill_list in skills_list}}\\textbf{{\\VAR{{category}}:}} \\VAR{{skill_list}}\\BLOCK{{if not loop.last}}\\\\[1pt]\\BLOCK{{endif}}
+\\BLOCK{{endfor}}
 
 3. EXPERIENCE SECTION (copy exactly):
-\\section{{Experience}}
+\\section{{WORK EXPERIENCE}}
 
 \\BLOCK{{for job in experience}}
 \\textbf{{\\VAR{{job.title}}}} \\hfill \\VAR{{job.start_date}} -- \\VAR{{job.end_date}}\\\\
@@ -398,20 +403,26 @@ CRITICAL: COPY THESE SECTIONS EXACTLY - DO NOT MODIFY
 \\BLOCK{{if not loop.last}}\\vspace{{2pt}}\\BLOCK{{endif}}
 \\BLOCK{{endfor}}
 
-4. PROJECTS SECTION (copy exactly):
-\\section{{Projects}}
+4. PROJECTS SECTION (copy exactly — bullets format, NO GitHub links):
+\\section{{PROJECTS}}
 
 \\BLOCK{{for project in projects}}
-\\textbf{{\\VAR{{project.name}}}} \\, | \\, \\VAR{{project.tech_stack}}\\\\
-\\VAR{{project.description}}
+\\textbf{{\\VAR{{project.name}}}} \\, | \\, \\textit{{\\VAR{{project.tech_stack}}}}
+\\begin{{itemize}}
+\\BLOCK{{for bullet in project.bullets}}
+\\item \\VAR{{bullet}}
+\\BLOCK{{endfor}}
+\\end{{itemize}}
 \\BLOCK{{if not loop.last}}\\vspace{{2pt}}\\BLOCK{{endif}}
 \\BLOCK{{endfor}}
 
-5. EDUCATION SECTION (copy exactly):
-\\section{{Education}}
+5. EDUCATION SECTION (copy exactly — 2 lines per entry, university first):
+\\section{{EDUCATION}}
 
 \\BLOCK{{for edu in education}}
-\\textbf{{\\VAR{{edu.degree}}}} \\, | \\, GPA: \\VAR{{edu.gpa}} \\, | \\, \\VAR{{edu.university}}, \\VAR{{edu.location}} \\hfill \\VAR{{edu.start_year}} -- \\VAR{{edu.end_year}}\\BLOCK{{if not loop.last}}\\\\[2pt]\\BLOCK{{endif}}
+\\textbf{{\\VAR{{edu.university}}}}, \\VAR{{edu.location}} \\hfill \\VAR{{edu.start_year}} -- \\VAR{{edu.end_year}}\\\\
+\\VAR{{edu.degree}} \\hfill CGPA \\VAR{{edu.gpa}}
+\\BLOCK{{if not loop.last}}\\vspace{{4pt}}\\BLOCK{{endif}}
 \\BLOCK{{endfor}}
 
 ==============================================================================
@@ -448,45 +459,129 @@ STRICT RULES:
 3. DO NOT modify the skills_list loop format
 4. DO NOT change href syntax for links
 5. Only adjust: margins, font sizes, separators (| vs ---) to match PDF visual
+6. Font must be Arial/Helvetica — use \\usepackage[scaled]{{helvet}} and \\renewcommand{{\\familydefault}}{{\\sfdefault}}
+7. NEVER use \\MakeUppercase or \\uppercase anywhere in the document, including inside \\titleformat.
+   These commands corrupt section header rendering when combined with helvet/sfdefault font setup.
+   The correct and only acceptable \\titleformat line is:
+   \\titleformat{{\\section}}{{\\bfseries\\normalsize}}{{}}{{0pt}}{{}}[\\titlerule]
+   Do not deviate from this exact format under any circumstances.
+8. DO NOT include certification lines inside the Skills section
+9. DO NOT include GitHub or any URL links in the Projects section
+10. Projects use bullet arrays (project.bullets), NOT description strings
+11. Education: university name and dates on line 1, degree and CGPA on line 2
+12. Section names must be hardcoded in UPPERCASE directly in the \\section{{}} commands:
+    Use \\section{{SUMMARY}}, \\section{{SKILLS}}, \\section{{WORK EXPERIENCE}}, \\section{{PROJECTS}}, \\section{{EDUCATION}}
+    Never use \\section{{Summary}} or any mixed-case variant.
 
 OUTPUT: Return ONLY raw LaTeX code. No ```latex blocks. No explanations."""
 
-    # Upload PDF file
-    print("  Uploading PDF to Gemini...")
-    pdf_file = client.files.upload(file=pdf_path)
-    
-    print("  Calling Gemini API...")
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=[pdf_file, prompt]
-    )
-    
+    import concurrent.futures
+
+    pdf_file = None
+
+    try:
+        print("  Uploading PDF to Gemini...")
+        pdf_file = client.files.upload(file=pdf_path)
+
+        print("  Calling Gemini API (timeout: 90s)...")
+
+        def _call_gemini():
+            return client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=[pdf_file, prompt]
+            )
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_call_gemini)
+            try:
+                response = future.result(timeout=90)
+            except concurrent.futures.TimeoutError:
+                print("  ✗ Gemini timed out after 90s")
+                print("  → Falling back: copying existing DE template as MASTER template")
+                _cleanup_uploaded_file(pdf_file)
+                return _fallback_latex_template(pdf_path)
+
+    except Exception as e:
+        print(f"  ✗ Gemini API error: {e}")
+        print("  → Falling back: copying existing DE template as MASTER template")
+        if pdf_file:
+            _cleanup_uploaded_file(pdf_file)
+        return _fallback_latex_template(pdf_path)
+
+    _cleanup_uploaded_file(pdf_file)
+
     latex_content = response.text.strip()
-    
-    # Clean response
+
+    # Clean response — strip markdown fences if present
     if latex_content.startswith("```"):
         latex_content = re.sub(r'^```(?:latex|tex)?\s*', '', latex_content)
         latex_content = re.sub(r'\s*```$', '', latex_content)
-    
-    # Clean up uploaded file
-    try:
-        client.files.delete(name=pdf_file.name)
-    except:
-        pass
-    
+
     # Validate completeness
-    validate_latex_completeness(latex_content)
-    print("  ✓ LaTeX structure validated")
-    
+    try:
+        validate_latex_completeness(latex_content)
+        print("  ✓ LaTeX structure validated")
+    except ValueError as e:
+        print(f"  ✗ LaTeX validation failed: {e}")
+        print("  → Falling back: copying existing DE template as MASTER template")
+        return _fallback_latex_template(pdf_path)
+
     # Validate placeholders
     missing_keys = validate_latex_placeholders(latex_content, json_data)
     if missing_keys:
-        print(f"  ⚠ WARNING: Missing placeholders for keys: {missing_keys}")
+        print(f"  ⚠ WARNING: Missing placeholders: {missing_keys}")
     else:
         print("  ✓ All placeholders present")
-    
+
     return latex_content
 
+
+# ============================================================
+# STEP 2 HELPERS
+# ============================================================
+
+def _cleanup_uploaded_file(pdf_file) -> None:
+    """Delete an uploaded Gemini file, silently ignore errors."""
+    try:
+        client.files.delete(name=pdf_file.name)
+    except Exception:
+        pass
+
+
+def _fallback_latex_template(pdf_path: Path) -> str:
+    """
+    Return the best available existing .tex template as fallback.
+    Priority: DE → AE → DA → any available template in templates/.
+    """
+    stem = pdf_path.stem  # e.g. TejesvaniMupparaVijayaram_MASTER
+
+    # Derive base name by stripping _MASTER suffix
+    base = re.sub(r'_MASTER$', '', stem, flags=re.IGNORECASE)
+
+    candidates = [
+        TEMPLATES_DIR / f"{base}_DE.tex",
+        TEMPLATES_DIR / f"{base}_AE.tex",
+        TEMPLATES_DIR / f"{base}_DA.tex",
+    ]
+
+    # Also pick up any other .tex file for this base name
+    candidates += sorted(TEMPLATES_DIR.glob(f"{base}*.tex"))
+
+    for candidate in candidates:
+        if candidate.exists() and "_MASTER" not in candidate.stem.upper():
+            print(f"  ✓ Using fallback template: {candidate.name}")
+            return candidate.read_text(encoding="utf-8")
+
+    # Last resort — use samples/resume.tex
+    sample_path = Path(__file__).parent.parent / "samples" / "resume.tex"
+    if sample_path.exists():
+        print(f"  ✓ Using sample template as fallback")
+        return sample_path.read_text(encoding="utf-8")
+
+    raise FileNotFoundError(
+        "No fallback template found. Please ensure at least one "
+        f".tex file exists in {TEMPLATES_DIR} or samples/resume.tex exists."
+    )
 
 # ============================================================
 # STEP 3: COMPILE PDF

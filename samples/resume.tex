@@ -1,36 +1,70 @@
-\documentclass[10pt,letterpaper]{article}
-\usepackage[margin=0.4in]{geometry}
+\documentclass[10pt, letterpaper]{article}
+
+% ── Packages ──────────────────────────────────────────────
+\usepackage[scaled]{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=0.55in, top=0.45in, bottom=0.45in]{geometry}
+\usepackage{hyperref}
 \usepackage{enumitem}
 \usepackage{titlesec}
-\usepackage[colorlinks=true,linkcolor=blue!70,urlcolor=blue!70]{hyperref}
-\usepackage{xcolor}
+\usepackage{parskip}
 
-\pagestyle{empty}
-\setlength{\parindent}{0pt}
-\setlist[itemize]{nosep, leftmargin=15pt, topsep=2pt}
+% ── Hyperlink styling ─────────────────────────────────────
+\hypersetup{colorlinks=true, urlcolor=blue, linkcolor=blue}
 
-\titleformat{\section}{\bfseries\uppercase}{}{0em}{}[\titlerule]
+% ── Section formatting ────────────────────────────────────
+\titleformat{\section}
+  {\bfseries\normalsize}{}{0pt}{}[\titlerule]
 \titlespacing{\section}{0pt}{6pt}{3pt}
 
-\begin{document}
+% ── List formatting ───────────────────────────────────────
+\setlist[itemize]{
+  leftmargin=1.2em,
+  itemsep=1pt,
+  parsep=0pt,
+  topsep=2pt,
+  label=\textbullet
+}
 
+% ── Paragraph spacing ─────────────────────────────────────
+\setlength{\parskip}{0pt}
+\setlength{\parindent}{0pt}
+
+% ══════════════════════════════════════════════════════════
+\begin{document}
+% ══════════════════════════════════════════════════════════
+
+% ── Header ────────────────────────────────────────────────
 \begin{center}
-{\Large\bfseries \VAR{personal_info.name}}\\[2pt]
-\VAR{personal_info.location} \, | \, \VAR{personal_info.email} \, | \, \VAR{personal_info.phone} \, | \, \href{\VAR{personal_info.linkedin_url}}{LinkedIn} \, | \, \href{\VAR{personal_info.github_url}}{GitHub}
+{\Large\bfseries \VAR{personal_info.name}}\\[3pt]
+\VAR{personal_info.location} \, | \,
+\href{mailto:\VAR{personal_info.email}}{\VAR{personal_info.email}} \, | \,
+\VAR{personal_info.phone} \, | \,
+\href{\VAR{personal_info.linkedin_url}}{LinkedIn} \, | \,
+\href{\VAR{personal_info.github_url}}{GitHub}
 \end{center}
 
-\section{Summary}
+\vspace{2pt}
+
+% ── Summary ───────────────────────────────────────────────
+\section{SUMMARY}
 \VAR{summary}
 
-\section{Skills}
-\BLOCK{for category, skill_list in skills_list}\textbf{\VAR{category}:} \VAR{skill_list}\\[1pt]
-\BLOCK{endfor}\textbf{Certification:} \BLOCK{for cert in certifications}\VAR{cert.name} (\href{\VAR{cert.url}}{\VAR{cert.code}})\BLOCK{if not loop.last}, \BLOCK{endif}\BLOCK{endfor}
+\vspace{2pt}
 
-\section{Experience}
+% ── Technical Skills ──────────────────────────────────────
+\section{SKILLS}
+\BLOCK{for category, skill_list in skills_list}\textbf{\VAR{category}:} \VAR{skill_list}\BLOCK{if not loop.last}\\[1pt]\BLOCK{endif}
+\BLOCK{endfor}
+
+% ── Work Experience ───────────────────────────────────────
+\section{WORK EXPERIENCE}
 
 \BLOCK{for job in experience}
-\textbf{\VAR{job.title}} \hfill \VAR{job.start_date} -- \VAR{job.end_date}\\
-\textit{\VAR{job.company}} \hfill \textit{\VAR{job.location}}
+\textbf{\VAR{job.company}} \hfill \textit{\VAR{job.location}}\\
+\textbf{\VAR{job.title}} \hfill \VAR{job.start_date} -- \VAR{job.end_date}
 \begin{itemize}
 \BLOCK{for bullet in job.bullets}
 \item \VAR{bullet}
@@ -42,18 +76,26 @@
 \BLOCK{if not loop.last}\vspace{2pt}\BLOCK{endif}
 \BLOCK{endfor}
 
-\section{Projects}
+% ── Projects ──────────────────────────────────────────────
+\section{PROJECTS}
 
 \BLOCK{for project in projects}
-\textbf{\VAR{project.name}} \, | \, \VAR{project.tech_stack}\\
-\VAR{project.description}
+\textbf{\VAR{project.name}} \, | \, \textit{\VAR{project.tech_stack}}
+\begin{itemize}
+\BLOCK{for bullet in project.bullets}
+\item \VAR{bullet}
+\BLOCK{endfor}
+\end{itemize}
 \BLOCK{if not loop.last}\vspace{2pt}\BLOCK{endif}
 \BLOCK{endfor}
 
-\section{Education}
+% ── Education ─────────────────────────────────────────────
+\section{EDUCATION}
 
 \BLOCK{for edu in education}
-\textbf{\VAR{edu.degree}} \, | \, GPA: \VAR{edu.gpa} \, | \, \VAR{edu.university}, \VAR{edu.location} \hfill \VAR{edu.start_year} -- \VAR{edu.end_year}\BLOCK{if not loop.last}\\[2pt]\BLOCK{endif}
+\textbf{\VAR{edu.university}}, \VAR{edu.location} \hfill \VAR{edu.start_year} -- \VAR{edu.end_year}\\
+\VAR{edu.degree} \hfill CGPA \VAR{edu.gpa}
+\BLOCK{if not loop.last}\vspace{4pt}\BLOCK{endif}
 \BLOCK{endfor}
 
 \end{document}

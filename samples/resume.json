@@ -77,12 +77,20 @@
     {
       "name": "Real-Time Fraud Detection Platform",
       "tech_stack": "Kafka, Spark Streaming, Databricks, MLflow, Python",
-      "description": "Built streaming data platform processing 1M+ events/hour with ML-based fraud scoring; reduced fraud losses by 40% through real-time transaction blocking"
+      "bullets": [
+        "Built streaming data platform processing 1M+ events/hour using Kafka and Spark Streaming, enabling near-real-time fraud scoring with sub-second latency",
+        "Reduced fraud losses by 40% through ML-based transaction blocking using MLflow-tracked models deployed on Databricks",
+        "Implemented idempotent writes and DLQ routing, achieving 99.9% data consistency across failure and recovery scenarios"
+      ]
     },
     {
       "name": "Data Lake Migration",
       "tech_stack": "AWS S3, Glue, Athena, Terraform, Python",
-      "description": "Led migration of 50TB legacy data warehouse to AWS data lake; implemented medallion architecture with Glue ETL; reduced storage costs by 60% and query times by 45%"
+      "bullets": [
+        "Led migration of 50TB legacy data warehouse to AWS data lake using Glue ETL and Terraform-provisioned infrastructure",
+        "Implemented medallion architecture with bronze/silver/gold layers, reducing storage costs by 60% through S3 lifecycle policies",
+        "Reduced query times by 45% by applying Athena partition pruning and optimized columnar file formats across gold layer tables"
+      ]
     }
   ],
   "education": [

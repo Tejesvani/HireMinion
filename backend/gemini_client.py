@@ -59,6 +59,37 @@ def save_json_file(path: Path, data: dict):
     print(f"  ✓ Saved: {path.name}")
 
 
+def sanitize_resume_json(resume: dict) -> dict:
+    """
+    Remove corrupted values from resume JSON.
+    Gemini sometimes outputs garbage strings as section header values
+    (e.g. 'enupperupper', 'upperlower', random artifacts).
+    This strips any top-level string value that looks like a corrupted header.
+    """
+    if not isinstance(resume, dict):
+        return resume
+
+    CORRUPT_PATTERNS = [
+        'enupperupper', 'upperlower', 'lowerupper', 'endupper',
+        'beginupper', 'sectionupper', 'textupper'
+    ]
+
+    def is_corrupt(v):
+        if not isinstance(v, str):
+            return False
+        v_lower = v.lower().strip()
+        return any(p in v_lower for p in CORRUPT_PATTERNS)
+
+    def clean(obj):
+        if isinstance(obj, dict):
+            return {k: clean(v) for k, v in obj.items() if not is_corrupt(v)}
+        elif isinstance(obj, list):
+            return [clean(i) for i in obj if not is_corrupt(i)]
+        return obj
+
+    return clean(resume)
+
+
 def extract_json_block(text: str, start_marker: str, end_marker: str) -> dict:
     """Extract JSON from between markers."""
     pattern = rf"{re.escape(start_marker)}\s*(.*?)\s*{re.escape(end_marker)}"
@@ -125,11 +156,15 @@ def tailor_resume():
     if template_name:
         template_resume = load_json_file(TEMPLATES_DIR / f"{template_name}.json")
         print(f"  {'✓' if template_resume else '✗'} {template_name}.json (template)")
-    
+
+    is_master = "_MASTER" in template_name.upper() or "MASTER" in template_name.upper()
+
     # Determine what to generate
     generate_resume = get_option(metadata, "resume")
     generate_cover = get_option(metadata, "coverLetter")
     custom_prompt = get_option(metadata, "customPrompt")
+    generate_connection = get_option(metadata, "connectionRequest")
+    generate_inmail = get_option(metadata, "inmail")
     
     print(f"\nGeneration flags:")
     print(f"  Resume: {generate_resume}")
@@ -177,6 +212,9 @@ Respond to the user's custom prompt. Be concise and direct. Do only what is aske
 - Generate tailored resume: {generate_resume}
 - Generate cover letter: {generate_cover}
 - Generate job details: True
+- Generate connection request: {generate_connection}
+- Generate InMail: {generate_inmail}
+- Master resume mode: {is_master}
 {custom_prompt_section}
 
 ## INSTRUCTIONS
@@ -209,8 +247,11 @@ Generate all outputs now.
     
     job_details = extract_json_block(text, "===JOB_DETAILS_START===", "===JOB_DETAILS_END===")
     tailored_resume = extract_json_block(text, "===TAILORED_RESUME_START===", "===TAILORED_RESUME_END===")
+    tailored_resume = sanitize_resume_json(tailored_resume)
     tailored_cover = extract_json_block(text, "===TAILORED_COVER_START===", "===TAILORED_COVER_END===")
     custom_output_text = extract_text_block(text, "===CUSTOM_OUTPUT_START===", "===CUSTOM_OUTPUT_END===")
+    connection_request = extract_json_block(text, "===CONNECTION_REQUEST_START===", "===CONNECTION_REQUEST_END===")
+    inmail = extract_json_block(text, "===INMAIL_START===", "===INMAIL_END===")
     
     # Save outputs
     print("\nSaving outputs...")
@@ -218,6 +259,8 @@ Generate all outputs now.
     save_json_file(DOWNLOADED_DIR / "job_details.json", job_details)
     save_json_file(DOWNLOADED_DIR / "tailored_resume.json", tailored_resume)
     save_json_file(DOWNLOADED_DIR / "tailored_cover.json", tailored_cover)
+    save_json_file(DOWNLOADED_DIR / "connection_request.json", connection_request)
+    save_json_file(DOWNLOADED_DIR / "inmail.json", inmail)
     
     # Save custom output if present
     if custom_output_text:
@@ -232,7 +275,67 @@ Generate all outputs now.
     print("Complete!")
     print("="*50)
     
-    return {"custom_output": custom_output_text if custom_output_text else None}
+    return {
+        "custom_output": custom_output_text if custom_output_text else None,
+        "connection_request": connection_request,
+        "inmail": inmail
+    }
+
+
+def answer_question(question: str) -> str:
+    """Answer a custom application question using current job context."""
+
+    print("="*50)
+    print("GEMINI CLIENT - Answer Question")
+    print("="*50)
+
+    # Load context files
+    job_details = load_json_file(DOWNLOADED_DIR / "job_details.json")
+    tailored_resume = load_json_file(DOWNLOADED_DIR / "tailored_resume.json")
+    cleaned_txt_path = DOWNLOADED_DIR / "cleaned.txt"
+    job_description = cleaned_txt_path.read_text(encoding="utf-8") if cleaned_txt_path.exists() else ""
+
+    # Fall back to master resume data if tailored not available
+    if not tailored_resume:
+        metadata = load_json_file(DOWNLOADED_DIR / "metadata.json")
+        resume_file = metadata.get("options", {}).get("resumeFile", "")
+        template_name = Path(resume_file).stem if resume_file else ""
+        if template_name:
+            tailored_resume = load_json_file(TEMPLATES_DIR / f"{template_name}.json")
+
+    system_prompt = """You are helping a job candidate answer a custom application question.
+Your answer must be:
+- Grounded in the candidate's actual experience from their resume — do not fabricate
+- Tailored to the specific company and role from the job description
+- Written in first person, professional tone
+- 150-250 words unless the question clearly requires a shorter answer
+- Structured: specific situation or credential first, then impact, then connection to this role
+- Free of generic phrases like "I am passionate about" or "I believe I would be a great fit"
+Respond with the answer text only. No labels, no preamble, no explanation."""
+
+    user_prompt = f"""Company: {job_details.get('company', 'the company')}
+Role: {job_details.get('role', 'the role')}
+
+Job Description Summary:
+{job_description[:3000]}
+
+Candidate's Tailored Resume for This Role:
+{json.dumps(tailored_resume, indent=2)[:4000]}
+
+Application Question:
+{question}
+
+Write the answer."""
+
+    response = client.models.generate_content(
+        model=GEMINI_MODEL_SCRAPE,
+        contents=user_prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=system_prompt,
+        )
+    )
+
+    return response.text.strip()
 
 
 # ============================================================

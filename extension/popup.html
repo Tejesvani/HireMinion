@@ -11,17 +11,19 @@
     }
     
     body {
-      width: 400px;
-      padding: 0;
+      width: 100%;
+      min-height: 100vh;
+      margin: 0;
+      padding: 12px;
+      box-sizing: border-box;
+      overflow-y: auto;
       font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
       font-size: 14px;
       background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
-      min-height: 100%;
     }
-    
+
     .container {
       background: #fff;
-      margin: 12px;
       border-radius: 20px;
       padding: 24px;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -430,6 +432,53 @@
     .hidden {
       display: none;
     }
+
+    .job-banner {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 10px; border-radius: 6px; font-size: 12px;
+      margin-bottom: 8px;
+      background: rgba(0,180,0,0.08);
+      border-left: 3px solid #0b0;
+      color: #333;
+    }
+    .banner-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #0b0; flex-shrink: 0;
+      animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.35} }
+    .feature-group { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+    .feature-label { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; user-select: none; color: #444; }
+    .feature-label input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; }
+    .result-block { border-radius: 6px; padding: 10px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.1); color: #e0e0e0; }
+    .block-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+    .block-title { font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; flex: 1; opacity: 0.8; }
+    .editable-result { font-size: 13px; line-height: 1.65; white-space: pre-wrap; outline: none; min-height: 36px; padding: 4px 0; color: #e0e0e0; }
+    .editable-result.small { min-height: 20px; }
+    .editable-result:focus { outline: 1px solid rgba(255,255,255,0.15); border-radius: 3px; padding: 4px; }
+    .char-count { font-size: 11px; opacity: 0.5; color: #e0e0e0; }
+    .char-count.over { color: #e74c3c; opacity: 1; font-weight: 600; }
+    .copy-btn { font-size: 11px; padding: 2px 8px; cursor: pointer; border-radius: 4px; opacity: 0.75; background: rgba(255,255,255,0.1); color: #e0e0e0; border: 1px solid rgba(255,255,255,0.2); }
+    .copy-btn:hover { opacity: 1; }
+    .action-link { font-size: 11px; padding: 2px 8px; border-radius: 4px; text-decoration: none; opacity: 0.75; color: #a5b4fc; background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); }
+    .action-link:hover { opacity: 1; }
+    .block-note { font-size: 12px; opacity: 0.6; font-style: italic; color: #e0e0e0; }
+    #qa-answer-btn { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+    #qa-answer-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4); }
+    #generate-btn {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+    #generate-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    }
+    .btn-hint {
+      font-size: 11px;
+      opacity: 0.5;
+      text-align: center;
+      margin-top: 4px;
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -443,7 +492,12 @@
         <p>Just like the minion but AI-powered for job assist</p>
       </div>
     </div>
-    
+
+    <div id="job-banner" style="display:none;" class="job-banner">
+      <span class="banner-dot"></span>
+      <span id="banner-text"></span>
+    </div>
+
     <div id="controls">
       <div class="form-group">
         <label class="title required">Resume</label>
@@ -452,32 +506,47 @@
         </select>
       </div>
 
-      <div class="checkbox-group">
-        <label>
-          <input type="checkbox" id="chkResume">
-          <span>📄 Resume</span>
+      <div class="feature-group">
+        <label class="feature-label">
+          <input type="checkbox" id="feat-resume" checked> Tailored Resume
         </label>
-        <label>
-          <input type="checkbox" id="chkCover">
-          <span>✉️ Cover Letter</span>
+        <label class="feature-label">
+          <input type="checkbox" id="feat-cover"> Cover Letter
         </label>
-        <label>
-          <input type="checkbox" id="chkCustomPrompt">
-          <span>💬 Custom Prompt</span>
+        <label class="feature-label">
+          <input type="checkbox" id="feat-connection"> Connection Request
+        </label>
+        <label class="feature-label">
+          <input type="checkbox" id="feat-inmail"> InMail
+        </label>
+        <label class="feature-label">
+          <input type="checkbox" id="feat-qa"> Custom Q&A
         </label>
       </div>
-      
-      <textarea id="customPromptBox" placeholder="Enter your custom AI instructions..."></textarea>
+
+      <div id="qa-input-area" style="display:none; margin-top:8px;">
+        <textarea
+          id="qa-question"
+          placeholder="Paste your application question here..."
+          rows="3"
+          style="width:100%; box-sizing:border-box; resize:vertical;"
+        ></textarea>
+        <button id="qa-answer-btn" style="margin-top:4px; width:100%;">Answer Question</button>
+      </div>
 
       <div class="button-group">
         <button id="scrapeBtn">
           <span>🔍</span>
           <span>Scrape</span>
         </button>
+        <button id="generate-btn" disabled>⚡ GENERATE</button>
         <button id="storeBtn">
           <span>💾</span>
           <span>Store</span>
         </button>
+      </div>
+      <div class="btn-hint">
+        <strong>Scrape</strong> = fetch fresh job · <strong>Generate</strong> = add outputs to current job
       </div>
       
       <div class="button-group">
@@ -498,20 +567,52 @@
     </div>
 
     <div class="output-section">
-      <div class="output-header">
-        <label class="output-label">
-          <span class="output-label-icon">⚡</span>
-          <span>Output Terminal</span>
-        </label>
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <button id="copyBtn" title="Copy output to clipboard">📋 Copy</button>
-          <div class="output-status">
-            <span class="status-dot"></span>
-            <span>Ready</span>
+      <div id="results-area" style="display:none; margin-top:12px;">
+
+        <div id="block-resume" class="result-block" style="display:none;">
+          <div class="block-header">
+            <span class="block-title">Tailored Resume</span>
+            <a id="resume-pdf-link" href="#" target="_blank" class="action-link">⬇ Download PDF</a>
           </div>
+          <div class="block-note">PDF generated — click above to download.</div>
         </div>
+
+        <div id="block-cover" class="result-block" style="display:none;">
+          <div class="block-header">
+            <span class="block-title">Cover Letter</span>
+            <button class="copy-btn" data-target="cover-text">⎘ Copy</button>
+          </div>
+          <div id="cover-text" class="editable-result" contenteditable="true"></div>
+        </div>
+
+        <div id="block-connection" class="result-block" style="display:none;">
+          <div class="block-header">
+            <span class="block-title">Connection Request</span>
+            <span id="connection-char-count" class="char-count">0/300</span>
+            <button class="copy-btn" data-target="connection-text">⎘ Copy</button>
+          </div>
+          <div id="connection-text" class="editable-result small" contenteditable="true"></div>
+        </div>
+
+        <div id="block-inmail" class="result-block" style="display:none;">
+          <div class="block-header">
+            <span class="block-title">InMail</span>
+            <span id="inmail-word-count" class="char-count">0 words</span>
+            <button class="copy-btn" data-target="inmail-text">⎘ Copy</button>
+          </div>
+          <div id="inmail-subject" class="editable-result small" contenteditable="true" style="margin-bottom:6px; font-weight:600;"></div>
+          <div id="inmail-text" class="editable-result" contenteditable="true"></div>
+        </div>
+
+        <div id="block-qa" class="result-block" style="display:none;">
+          <div class="block-header">
+            <span class="block-title">Q&A Answer</span>
+            <button class="copy-btn" data-target="qa-answer-text">⎘ Copy</button>
+          </div>
+          <div id="qa-answer-text" class="editable-result" contenteditable="true"></div>
+        </div>
+
       </div>
-      <textarea id="outputBox" readonly placeholder="// Results will appear here after processing...&#10;// Select a resume and choose your options above&#10;// Click Scrape to analyze the current job posting"></textarea>
     </div>
   </div>
 

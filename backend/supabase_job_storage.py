@@ -99,25 +99,31 @@ class JobStorage:
     def _prepare_for_supabase(self, jobs: list[dict]) -> list[dict]:
         """Filter jobs to only include valid columns for Supabase."""
         valid_cols = self._get_valid_columns()
-        cleaned_data = []
         raw_content = self._load_raw_content()
-        
+
+        # Fallback if column fetch failed — use known schema
+        if not valid_cols:
+            valid_cols = {
+                "company", "role", "location", "work_type", "job_number",
+                "min_salary", "max_salary", "required_skills", "nice_to_have",
+                "experience_years", "clearance", "url", "posted_date",
+                "short_description", "min_qualification", "employment_type",
+                "industry", "scraped_at", "ingested_at", "machine_id", "raw_content"
+            }
+
+        cleaned_data = []
         for job in jobs:
-            if valid_cols:
-                cleaned_job = {k: v for k, v in job.items() if k in valid_cols and k != "id"}
-            else:
-                cleaned_job = {k: v for k, v in job.items() if k != "id"}
-            
+            cleaned_job = {k: v for k, v in job.items() if k in valid_cols and k != "id"}
             cleaned_job["machine_id"] = self.machine_id
             cleaned_job["ingested_at"] = datetime.now().isoformat()
             cleaned_job["raw_content"] = raw_content
-            
-            for key in ["required_skills", "nice_to_have"]:
+
+            for key in ["required_skills", "nice_to_have", "min_qualification"]:
                 if key in cleaned_job and isinstance(cleaned_job[key], list):
                     cleaned_job[key] = json.dumps(cleaned_job[key])
-            
+
             cleaned_data.append(cleaned_job)
-        
+
         return cleaned_data
     
     def store(self, json_path: str = "downloaded/job_details.json") -> dict:
@@ -133,9 +139,9 @@ class JobStorage:
             
             print(f"  ✓ Stored {len(jobs)} jobs to Supabase")
             return {"success": True, "count": len(jobs)}
-        except Exception:
-            print(f"  ✗ Failed to store to Supabase")
-            return {"success": False}
+        except Exception as e:
+            print(f"  ✗ Failed to store to Supabase: {type(e).__name__}: {e}")
+            return {"success": False, "error": str(e)}
     
     def get_all(self, limit: int = 100) -> list[dict]:
         """Retrieve all jobs."""

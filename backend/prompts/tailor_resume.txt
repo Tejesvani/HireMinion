@@ -146,9 +146,367 @@ Respond with clearly separated JSON blocks using these exact delimiters:
 {json}
 ===TAILORED_COVER_END===
 
-===LINKEDIN_MESSAGE_START===
+===CONNECTION_REQUEST_START===
 {json}
-===LINKEDIN_MESSAGE_END===
+===CONNECTION_REQUEST_END===
+
+===INMAIL_START===
+{json}
+===INMAIL_END===
+
+---
+
+## PERMANENT FORMAT RULES (apply to every generation, every template, no exceptions)
+
+─────────────────────────────────────────────────────────────────────
+RULE 1 — SUMMARY: EXACTLY 3 RENDERED LINES
+─────────────────────────────────────────────────────────────────────
+- Each line renders at approximately 110 characters in Arial 10pt with 0.55in margins
+- Target total: 320–340 characters including spaces
+- Count your output: if under 310 chars → expand. If over 345 chars → cut.
+- Formula: [Role Title] + [X years] + [2 core JD-aligned skills] + [1 achievement with metric] + [top 2-3 tools] + [domain context]
+- Write it as ONE flowing paragraph — no bullet points, no line breaks
+- Do not end with a hard stop mid-thought — the 3rd line should feel complete
+- NEVER write a 2-line or 4-line summary. Count characters before outputting.
+
+─────────────────────────────────────────────────────────────────────
+RULE 2 — SKILLS: DENSE LINES, NO ORPHANS, NO CERTIFICATION LINE
+─────────────────────────────────────────────────────────────────────
+SKILL CATEGORY NAMING RULES:
+- Category names must be professional, standard, and recognizable to any recruiter
+- NEVER invent abstract or hybrid category names
+- Use ONLY these approved category name formats:
+
+    APPROVED:
+    "Data Engineering & Orchestration"
+    "Cloud Platforms"
+    "Programming & Databases"
+    "DevOps & Collaboration"
+    "Data Visualization & Monitoring"
+    "Analytics & Statistics"
+    "Domain Expertise"
+    "Languages & Frameworks"
+    "Pipeline & Architecture"
+    "Data Warehousing & Storage"
+
+    BANNED — never use these or anything like them:
+    "Agile Devops" → use "DevOps & Collaboration"
+    "Analytics Math" → use "Analytics & Statistics"
+    "Agile Methods" → merge into "DevOps & Collaboration"
+    "Engineering Methods" → use "Pipeline & Architecture"
+    Any single-word category name
+    Any category name that combines unrelated concepts with an underscore
+
+- The JSON keys (e.g. data_engineering, agile_devops) are internal only — what matters is
+  the display value passed to the template. The format_skill_key() function in latex_compiler.py
+  converts underscores to spaces and title-cases the key name for display.
+  This means the JSON key name IS the displayed category label.
+  Therefore: use snake_case keys that convert cleanly to readable labels:
+    "data_engineering_and_orchestration" → "Data Engineering And Orchestration" ✓
+    "devops_and_collaboration" → "Devops And Collaboration" ✓
+    "analytics_and_statistics" → "Analytics And Statistics" ✓
+    "agile_devops" → "Agile Devops" ✗ — not a real category name
+    "analytics_math" → "Analytics Math" ✗ — not a real category name
+
+SKILL LINE LENGTH — HARD LIMIT:
+- Maximum 108 characters per skill line INCLUDING the category label and colon
+- This is the exact rendered width at Arial 10pt with margin=0.4in on letter paper
+- Any line over 108 characters WILL wrap and orphan words on a second line
+- Count characters before finalizing: label + ": " + skills string = total
+
+CHARACTER COUNTING PROCESS (run for every category before outputting):
+  1. Take the category label as it will display (e.g. "Data Engineering And Orchestration")
+  2. Add ": " (2 chars)
+  3. Add the skills string
+  4. Count total characters
+  5. If over 108 → remove the least JD-relevant skill and recount
+  6. Repeat until under 108
+  7. If under 88 → add more JD-relevant skills until between 88-108
+
+EXAMPLE — correct process:
+  "analytics_and_statistics: Mathematical Analysis, Statistical Analysis, Python, Advanced SQL, Hypothesis Testing, Power BI, Pandas, Machine Learning"
+  Count: 147 characters — OVER LIMIT
+  Remove "Machine Learning" (least JD-relevant if JD doesn't emphasize ML):
+  "analytics_and_statistics: Mathematical Analysis, Statistical Analysis, Python, Advanced SQL, Hypothesis Testing, Power BI, Pandas"
+  Count: 129 characters — still over
+  Remove "Power BI":
+  "analytics_and_statistics: Mathematical Analysis, Statistical Analysis, Python, Advanced SQL, Hypothesis Testing, Pandas"
+  Count: 119 characters — still over
+  Remove "Hypothesis Testing":
+  "analytics_and_statistics: Mathematical Analysis, Statistical Analysis, Python, Advanced SQL, Pandas"
+  Count: 99 characters — WITHIN LIMIT ✓
+
+NEVER leave orphaned items on a second line. A skill category must fit entirely on one line.
+If you cannot fit the minimum required skills in 108 characters → shorten skill names:
+  "Agile Methodologies (Scrum, Kanban)" → "Agile (Scrum, Kanban)" saves 15 chars
+  "Azure Data Factory" → "Azure ADF" saves 9 chars
+  "Data Integrity Validation" → "Data Integrity" saves 11 chars
+- Do NOT output a "Certification:" line inside the skills JSON dict under any circumstances
+- Certifications belong only in the certifications array, never in skills
+- If the resume template has an empty Certification line, the skills dict must not contain a certification key at all — this ensures the LaTeX template skips rendering it entirely
+
+─────────────────────────────────────────────────────────────────────
+RULE 3 — BULLETS: STRUCTURE, LENGTH, TONE
+─────────────────────────────────────────────────────────────────────
+## THE MANDATORY BULLET STRUCTURE
+
+Every bullet in Experience AND Projects must follow this exact 3-part structure:
+
+  PART 1 — WHAT WAS ACHIEVED (metric first):
+  Start with the measurable outcome or metric. Numbers go first — recruiters scan for them.
+  Example: "Cut pipeline execution time by 35%"
+
+  PART 2 — HOW IT WAS DONE (specific technical action + named tool + mechanism):
+  Explain the exact technical action taken. Name the tool. Explain WHY that action produced the result.
+  Do NOT just name the tool — explain what you did with it.
+  WRONG: "using Airflow"
+  RIGHT: "by refactoring Airflow DAGs to run task groups in parallel instead of sequentially"
+
+  PART 3 — DOWNSTREAM BUSINESS IMPACT (why it mattered):
+  What changed for the business or the team because of this work?
+  WRONG: "improving performance"
+  RIGHT: "making data available 25% faster for downstream reporting"
+
+FULL BULLET FORMULA:
+  [Metric/outcome achieved] + [on what: scale or context] + [by: specific technical action with named tool and mechanism] + [result: downstream business impact]
+
+## REFERENCE BULLETS — USE THESE AS THE QUALITY STANDARD
+
+These bullets from the candidate's original resume represent the exact quality, structure, and tone required.
+Every bullet you write must meet this standard. Read them carefully before writing anything.
+
+REFERENCE BULLET 1:
+"Cut pipeline execution time by 35% on 1TB/day sensor and ride data ingestion by refactoring Airflow DAGs to run task groups in parallel over sequentially, making the data available 25% faster for downstream reporting."
+
+Why this works:
+- Metric first: "Cut pipeline execution time by 35%"
+- Scale context: "on 1TB/day sensor and ride data ingestion"
+- Specific mechanism: "refactoring Airflow DAGs to run task groups in parallel over sequentially" — names the tool AND explains exactly what changed
+- Business impact: "making the data available 25% faster for downstream reporting"
+- Nothing is open-ended. Every clause answers a follow-up question.
+
+REFERENCE BULLET 2:
+"Improved KPI reliability by 40% for ops and product teams by building new dbt staging and intermediate models that enforced null checks, deduplication, and referential integrity across ride, vehicle, and pricing sources."
+
+Why this works:
+- Metric: "Improved KPI reliability by 40%"
+- Who it helped: "for ops and product teams"
+- How: "building new dbt staging and intermediate models" — specific layer names, not just "dbt models"
+- What the models did: "enforced null checks, deduplication, and referential integrity" — concrete technical details
+- Data scope: "across ride, vehicle, and pricing sources" — specific data domains
+
+REFERENCE BULLET 3:
+"Migrated 50M+ insurance records from on-prem Oracle to ADLS Gen2 using Azure Data Factory with Delta format, replacing slow and unreliable legacy reporting with a lineage-tracked, audit-ready data foundation."
+
+Why this works:
+- Scale: "50M+ insurance records"
+- From/to: "from on-prem Oracle to ADLS Gen2"
+- Tool + format: "Azure Data Factory with Delta format"
+- What changed: "replacing slow and unreliable legacy reporting" — names what was broken
+- End state: "lineage-tracked, audit-ready data foundation" — concrete outcome
+
+REFERENCE BULLET 4:
+"Raised data quality from 82% to 94% across the Medallion pipeline by implementing dbt tests at every layer and ADF failure alerts, cutting the manual reporting corrections the team had to make every week."
+
+Why this works:
+- Before/after metric: "from 82% to 94%" — specific and credible
+- Scope: "across the Medallion pipeline"
+- Two concrete mechanisms: "dbt tests at every layer" AND "ADF failure alerts"
+- Human impact: "cutting the manual reporting corrections the team had to make every week" — real operational change
+
+REFERENCE BULLET 5:
+"Reduced deployment time by 50% by provisioning Azure infrastructure with Terraform and automating dbt deployments through Azure DevOps CI/CD, making deployments consistent and repeatable."
+
+Why this works:
+- Metric: "50% reduction"
+- Two tools named: "Terraform" and "Azure DevOps CI/CD"
+- What each tool did: "provisioning infrastructure" + "automating deployments"
+- End state: "consistent and repeatable" — simple, credible outcome
+
+## WHAT MAKES A BULLET FAIL — ANTI-PATTERNS TO NEVER PRODUCE
+
+FAILURE TYPE 1 — Open-ended, nothing specific:
+WRONG: "Built secure data pipelines processing 1TB/day of records via Airflow, delivering analytics data 25% faster."
+Why it fails: "secure" is vague, "via Airflow" doesn't explain what Airflow did, "delivering analytics data faster" doesn't explain how the pipeline achieved the speed improvement. Three open-ended clauses.
+
+FAILURE TYPE 2 — Tool name without mechanism:
+WRONG: "Maintained data integrity across relational databases using dbt on Snowflake, securing data mart loads."
+Why it fails: "using dbt on Snowflake" — what did you do with dbt? "securing data mart loads" — how?
+RIGHT: "Maintained data integrity for 30+ relational database tables by writing dbt schema tests for null checks and FK violations on Snowflake, blocking bad records from reaching the data mart."
+
+FAILURE TYPE 3 — Action without outcome:
+WRONG: "Led Agile pipeline development using secure coding in Python, deploying microservices for data quality checks."
+Why it fails: what was the result? Did it find more bugs? Reduce incidents? Save time?
+
+FAILURE TYPE 4 — Generic with no data context:
+WRONG: "Automated monthly reporting using Python."
+RIGHT: "Automated monthly revenue and policy reporting using Python scripts that pulled from Oracle and formatted outputs for finance, saving analysts 8+ hours of manual work per week."
+
+## BULLET LENGTH RULE — SECOND LINE MUST CARRY WEIGHT
+
+Every bullet renders across 2 lines. Both lines must carry meaningful content.
+The wrap point — where line 1 ends and line 2 begins — must not leave a short tail.
+
+LINE WIDTH at Arial 10pt, margin=0.4in: approximately 165 characters per line
+
+BULLET LENGTH TARGETS:
+- Minimum: 175 characters — ensures line 2 has enough content to be meaningful
+- Target:  185-210 characters — fills both lines with dense, valuable content
+- Maximum: 230 characters — any longer and line 2 becomes too long or spills to line 3
+
+SECOND LINE DENSITY RULE — THE MOST IMPORTANT NEW RULE:
+Line 2 must contain at least 60 characters of meaningful content.
+Line 2 is everything after the first 165 characters of the bullet.
+Count: if (total chars - 165) < 60 → bullet is too short, expand it.
+
+HOW TO EXPAND A SHORT BULLET:
+Option A — Add the downstream business impact in more detail:
+  Before: "...delivering analytics-ready data 25% faster for operations."   [line 2: 54 chars — too short]
+  After:  "...making trade settlement data available 25% faster for downstream underwriting and reporting teams."  [line 2: 89 chars ✓]
+
+Option B — Add the specific mechanism that caused the result:
+  Before: "...by parallelizing Airflow DAGs, delivering data 25% faster."  [line 2: 52 chars — too short]
+  After:  "...by refactoring Airflow DAGs to run task groups in parallel instead of sequentially, cutting wait time by 25% across all downstream consumers."  [line 2: 95 chars ✓]
+
+Option C — Add the data type and scope context:
+  Before: "...catching anomalies before analytical data mart loading."  [line 2: 49 chars — too short]
+  After:  "...catching null values, schema drift, and out-of-range records before they reached the claims and premium data marts."  [line 2: 84 chars ✓]
+
+WHAT LINE 2 MUST NEVER BE:
+✗ A metric hanging alone:           "data 25% faster for operations."
+✗ A vague outcome:                  "improving overall pipeline performance."
+✗ A repeated tool name:             "using dbt on Snowflake."
+✗ Under 60 characters of content:   anything that looks like a sentence tail
+
+WHAT LINE 2 SHOULD BE:
+✓ A full clause explaining the downstream impact with specific context
+✓ The mechanism that caused the result, with technical detail
+✓ The scope or scale of what was affected: teams, data types, systems
+✓ At least 60 characters — ideally 70-100 characters
+
+CHARACTER COUNTING PROCESS FOR EVERY BULLET:
+  1. Write the bullet
+  2. Count total characters
+  3. If under 175 → expand using Option A, B, or C above
+  4. Subtract 165 from total → that is your line 2 length
+  5. If line 2 length is under 60 → expand the bullet further
+  6. If over 230 → cut the least important clause
+  7. Only finalize the bullet when: 175 ≤ total ≤ 230 AND (total - 165) ≥ 60
+
+REFERENCE BULLETS — these pass all checks:
+
+REFERENCE 1:
+"Cut pipeline execution time by 35% on 1TB/day sensor and ride data ingestion by refactoring Airflow DAGs to run task groups in parallel over sequentially, making the data available 25% faster for downstream reporting."
+Total: 216 chars. Line 2 starts at char 166: "making the data available 25% faster for downstream reporting." = 62 chars ✓
+
+REFERENCE 2:
+"Raised data quality from 82% to 94% across the Medallion pipeline by implementing dbt tests at every layer and ADF failure alerts, cutting the manual reporting corrections the team had to make every week."
+Total: 204 chars. Line 2 starts at char 166: "cutting the manual reporting corrections the team had to make every week." = 73 chars ✓
+
+REFERENCE 3:
+"Migrated 50M+ insurance records from on-prem Oracle to ADLS Gen2 using Azure Data Factory with Delta format, replacing slow and unreliable legacy reporting with a lineage-tracked, audit-ready data foundation."
+Total: 208 chars. Line 2: "replacing slow and unreliable legacy reporting with a lineage-tracked, audit-ready data foundation." = 99 chars ✓
+
+Every bullet you write must pass the same check before being output.
+
+## BANNED OPENING VERBS
+Never start a bullet with: Architected, Spearheaded, Leveraged, Utilized, Orchestrated,
+Championed, Pioneered, Transformed, Synergized, Operationalized
+
+## ALLOWED OPENING VERBS (direct and credible)
+Cut, Reduced, Improved, Built, Migrated, Raised, Deployed, Replaced, Automated, Designed,
+Wrote, Refactored, Fixed, Added, Removed, Moved, Set up, Tracked, Connected, Tested,
+Eliminated, Standardized, Resolved, Achieved, Scaled
+
+## TONE RULES
+- Write like a sharp engineer explaining what they did to a technical hiring manager
+- Every clause must answer an implicit follow-up question: "How?" or "So what?"
+- If a clause doesn't answer one of those two questions, cut it
+- Simple words over corporate jargon: "cut" not "reduced latency through optimization"
+- Name specific data types: "insurance claims records" not "records"
+- Name specific layers: "Silver and Gold layers" not "data warehouse layers"
+- Name specific metrics: "from 82% to 94%" not "significantly improved"
+
+─────────────────────────────────────────────────────────────────────
+RULE 4 — ONE PAGE STRICT — NON-NEGOTIABLE
+─────────────────────────────────────────────────────────────────────
+
+The resume MUST fit on exactly one page. Template: Arial 10pt, margin=0.4in, top=0.35in, bottom=0.35in.
+At these settings each line holds ~165 characters. Each bullet renders as 2 lines.
+
+BULLET COUNT — DO NOT EXCEED THESE NUMBERS:
+  Most recent role:              3 bullets
+  Second role:                   5 bullets
+  Third role:                    2 bullets
+  Project 1:                     2 bullets
+  Project 2:                     2 bullets
+  ─────────────────────────────────────────
+  Total bullets maximum:         14
+
+These counts are calibrated to fit one page with 2-line bullets. Do not add extra bullets.
+
+ONE-PAGE OVERFLOW PROTOCOL — if still over one page after following counts above:
+  Step 1: Find any bullet running to 3 lines (over 330 chars) → cut to 2 lines
+  Step 2: Remove the weakest bullet from the third role (reduce to 1 bullet)
+  Step 3: Reduce Project 2 to 1 bullet
+  Step 4: Tighten any bullet over 280 chars to under 250 chars
+  NEVER remove an entire role. NEVER go below 3 bullets for the most recent role.
+
+─────────────────────────────────────────────────────────────────────
+RULE 5 — PROJECTS: TITLES, CONTEXT, AND BULLETS
+─────────────────────────────────────────────────────────────────────
+
+PROJECT TITLE RULES:
+- Keep the project title close to what the candidate actually built
+- You may reword for clarity and professionalism but NEVER inflate or over-abstract
+- The title should describe the actual system built, not a generic architecture concept
+
+GOOD title rewording examples:
+  Original: "Fraud Detection Project" → Allowed: "Real-Time Fraud Detection Pipeline"
+  Original: "Marketing Dashboard" → Allowed: "Marketing Analytics Dashboard"
+  Original: "ETL Pipeline" → Allowed: "Batch ETL Pipeline with Quality Monitoring"
+
+BAD title rewording — NEVER do this:
+  Original: "Analytics Pipeline" → NOT allowed: "Statistical Pipeline Architecture"
+  Original: "Data Project" → NOT allowed: "Enterprise Data Lakehouse Transformation"
+  Rule: if the candidate would read the title and say "that's not what I built" → it's wrong
+
+PROJECT BULLET RULES:
+- Tailor bullets to highlight tools and techniques asked for in the JD
+- Keep the work domain of the project true to what was actually built
+  Example: a fraud detection project stays in fraud/fintech context — do NOT shift it to insurance
+  Example: a marketing analytics project stays in marketing analytics — do NOT shift it to claims data
+- You MAY reframe the business impact using JD-relevant terminology
+- You MAY add JD-relevant tools IF they were plausibly used in the project
+- You MUST NOT change what the project fundamentally does or who it served
+- Each bullet follows the EXACT same 3-part structure, length, and format as experience bullets (RULE 3):
+  → 3-part structure: metric first + specific technical mechanism + downstream impact
+  → Length: 175–230 characters total, line 2 must carry ≥ 60 characters of meaningful content
+  → The same CHARACTER COUNTING PROCESS and expansion options (A/B/C) from RULE 3 apply
+  → The same BANNED and ALLOWED opening verbs from RULE 3 apply
+  → Do NOT write short 1-line project bullets — they fail the same checks as experience bullets
+- Maximum 3 bullets per project
+- No GitHub links, no URLs
+- Maximum 2 projects total
+- NEVER reference Agile, Scrum, Kanban, sprint ceremonies, or team delivery methodologies in project bullets.
+  Personal and self-directed projects have no Agile context — mentioning it looks out of place and weakens credibility.
+  If a draft bullet contains Agile language → replace it with the specific technical action that was taken instead.
+  Example:
+  WRONG: "Cut detection time by 60% by creating dashboards, participating in Agile iterations to deliver reliable architecture"
+  RIGHT: "Cut incident detection time by 60% by building Prometheus dashboards tracking consumer lag, error rates, and throughput"
+
+TECH STACK LINE:
+- List only tools actually used in the project
+- Reorder by JD priority (most JD-relevant tool listed first)
+- Do not add tools that were not used in the project
+
+─────────────────────────────────────────────────────────────────────
+RULE 6 — EDUCATION FORMAT
+─────────────────────────────────────────────────────────────────────
+- 2 lines per entry exactly
+- Line 1: University Name, City/Location [right-aligned: Start – End dates]
+- Line 2: Degree Name [right-aligned: CGPA X.XX]
+- Nothing else — no department, no honors on a separate line
 
 ---
 
@@ -592,12 +950,14 @@ The first 5-7 words of every bullet must contain:
 2. A Power Action Verb
 
 #### Metrics Placement Rule:
-If a bullet has a %, $, or number, it must appear BEFORE the comma.
+Metrics go at the START of the bullet — first 10 words maximum.
 
-- BAD: "Built pipelines that reduced latency by 90%"
-- GOOD: "Reduced reporting latency by 90% by building production ETL pipelines"
+WRONG: "Built Airflow ETL pipelines that processed 1TB/day of records, reducing latency by 35%"
+RIGHT: "Cut reporting latency by 35% on 1TB/day ingestion by redesigning Airflow DAGs to process task groups in parallel"
 
-Recruiters scan numbers first. Put them where eyes land.
+Recruiters scan the left side of the page. The metric must be in the first 7-10 words.
+If your bullet starts with a tool name or an action verb without a metric, restructure it.
+Exception: if there is no metric available, lead with the most specific technical action.
 
 ---
 
@@ -726,15 +1086,6 @@ Make this visible across roles:
 - Junior: "Built SQL queries"
 - Mid: "Designed dbt models"
 - Senior: "Owned analytics architecture"
-
----
-
-### 10. BULLET POINT CHARACTER/WORD PARITY
-
-- **Maintain approximately the same character count or word count** per bullet point as the template resume's original bullets.
-- Slight adjustments (±10-15%) are acceptable, but do NOT dramatically shorten or lengthen bullets.
-- If the original bullet is ~120 characters, the new bullet should be approximately ~105-135 characters.
-- This ensures the resume layout and visual density remain consistent with the original formatting.
 
 ---
 
@@ -984,6 +1335,83 @@ Architected medallion-layer data platform processing batch and event-driven data
 
 ---
 
+---
+
+## MASTER RESUME MODE — ACTIVATE ONLY WHEN is_master FLAG IS TRUE
+
+When the template resume provided is a MASTER resume (indicated by is_master: true in the generation flags), apply these additional rules ON TOP of all existing tailoring rules. When is_master is false or not set, ignore this entire section completely.
+
+### What a master resume is:
+The master resume contains the candidate's COMPLETE work history — every bullet point they have ever written, every project, every skill. It is 2-3 pages and contains up to 10 bullets per experience role. It is NOT meant to be used as-is. It is a source of raw material.
+
+### Your job in master resume mode:
+Produce a SINGLE-PAGE tailored resume. This means aggressive selection and consolidation. The output JSON must represent a resume that, when rendered in the LaTeX template, fits on one page.
+
+### Page budget (strict — 1 page, Arial 10pt, margin=0.4in):
+
+BULLET COUNTS:
+  Most recent role:        3 bullets
+  Second role:             5 bullets
+  Third role:              2 bullets
+  Any further roles:       omit entirely
+  Project 1:               2 bullets
+  Project 2:               2 bullets
+  Total maximum:           14 bullets
+
+BULLET LENGTH: 175-210 characters each — renders as 2 full lines with meaningful content on both
+Line 2 must be at least 60 characters — never a short tail
+Never produce a bullet under 175 chars (too thin) or over 230 chars (spills to 3 lines)
+
+Word budget check:
+  Summary: ~55 words
+  14 bullets × ~25 words avg = ~350 words
+  Skills: ~45 words
+  Education: ~20 words
+  Total: ~470 words — fits one page at these settings
+
+If over 470 words → tighten long bullets first, then apply overflow protocol from RULE 4
+
+### Bullet selection process (run for each role):
+1. Score every bullet in the role against the JD — exact keyword match, domain relevance, metric presence, recency
+2. Select bullets based on role position:
+   - Most recent role (position 1): select top 3 highest-scoring bullets
+   - Second role (position 2): select top 5 highest-scoring bullets
+   - Third role (position 3): select top 2 highest-scoring bullets
+3. If two selected bullets cover overlapping skills or similar work, MERGE them into one tighter bullet that preserves both metrics and both tools
+4. Apply all existing tailoring rules (domain reframing, keyword alignment, power verbs, front-loading) to the selected/merged bullets
+5. Final output: bullet counts per role must match the BULLET COUNTS table exactly (3 / 5 / 2)
+
+### Bullet merge example:
+Original bullet A: "Built Airflow DAGs processing 2M+ trade records daily with retry logic and SLA monitoring"
+Original bullet B: "Automated pipeline alerting using Airflow and PagerDuty, reducing MTTR by 40%"
+
+Merged: "Built Airflow DAGs processing 2M+ trade records daily with SLA monitoring and automated alerting, reducing MTTR by 40%"
+
+Notice: both metrics preserved, both tools preserved, one tight bullet.
+
+### Project selection process:
+1. Score every project against the JD
+2. Select the top 2 most relevant projects
+3. Apply all existing project tailoring rules to selected projects
+
+### Role selection process:
+If the master resume has more than 3 roles:
+1. Always include the most recent role
+2. Score remaining roles by JD relevance (keyword overlap, domain match, recency)
+3. Select top 2 from the remaining
+4. Drop all others from the output JSON entirely — do not include them even with fewer bullets
+
+### One-page validation (run before outputting):
+Estimate the rendered length. A single-page LaTeX resume fits approximately:
+- Summary: ~50 words
+- Role 1 (3 bullets) + Role 2 (5 bullets) + Role 3 (2 bullets) = 10 bullets × ~25 words avg = ~250 words of experience
+- Skills: ~30 words
+- 2 projects × 2+2 bullets × ~25 words avg = ~100 words
+- Education + certs: ~30 words
+Total budget: ~460 words of content. If your output exceeds this, tighten long bullets first, then apply overflow protocol from RULE 4.
+
+---
+
 ### 15. FINAL VALIDATION — MANDATORY MULTI-PASS REVIEW
 
 Before outputting the tailored resume, you MUST run these checks. Do NOT skip any.
@@ -1168,20 +1596,35 @@ Structure:
 
 ---
 
-## RULES FOR LINKEDIN MESSAGE
+## RULES FOR CONNECTION REQUEST
 Structure:
 {
-  "subject": "Short subject line",
-  "message": "Brief professional message"
+  "message": "The connection request note"
 }
 
-### LinkedIn Message Rules:
-- Keep under 300 characters
-- One goal: start a conversation
-- Formula: "Hi [Name], I recently applied for [Role] and noticed your team's focus on [JD keyword]. I've built [relevant system/tool] in similar environments and would love to connect."
-- No fluff, no emojis, no desperation
-- Lead with strongest relevant qualification
-- Include clear call-to-action
+### Connection Request Rules:
+- Hard limit: 300 characters including spaces. Count carefully.
+- Formula: "Hi [first name if known, otherwise omit], I came across the [Role] opening at [Company] and wanted to reach out diretly. I have [most relevant 1-line credential from tailored resume]. Would love to connect and know more. Happy to share my resume!"
+- No emojis, no desperation, no "I am excited"
+- If connection request flag is False, output empty JSON {}
+
+---
+
+## RULES FOR INMAIL
+Structure:
+{
+  "subject": "Short subject line under 10 words",
+  "message": "The InMail body"
+}
+
+### InMail Rules:
+- Hard limit: 100-150 words for the message body. Count carefully.
+- Open with strongest relevant credential, not enthusiasm
+- Reference the specific role and one specific thing about the company or JD
+- Tie to one concrete achievement from the tailored resume with a metric
+- End with a soft, specific call to action: "Would love to learn more about the team's approach to [JD-specific topic]"
+- No generic phrases: "I am passionate about", "I would be a great fit", "As per your JD"
+- If InMail flag is False, output empty JSON {}
 
 ---
 
@@ -1214,3 +1657,44 @@ Extract from job description:
 - Distinguish between "required" and "nice to have"
 - Capture industry for Domain Bridging
 - Do not change the key names
+
+---
+
+## PRE-OUTPUT SELF-CHECK — RUN THIS BEFORE RETURNING JSON
+
+Before writing the final JSON output, answer each question internally:
+
+SUMMARY CHECK:
+  [ ] Character count of summary: ___
+  [ ] Is it between 310 and 345 characters? If not → rewrite
+  [ ] Does it read as one flowing paragraph? If not → rewrite
+
+SKILLS CHECK:
+  [ ] Does any category use a banned name (Agile Devops, Analytics Math, etc.)? If yes → rename it
+  [ ] For every category: count label + ": " + skills = total chars. Is it under 108? If not → remove skills
+  [ ] Does any category have orphaned items that would wrap to a second line? → remove items until it fits
+  [ ] Does any category have a certification key? If yes → remove it
+  [ ] Is every category between 88-108 characters total? If under 88 → add skills. If over 108 → remove skills.
+
+BULLET CHECK (run for every single bullet in experience and projects):
+  [ ] Total character count of this bullet: ___
+  [ ] Is it between 175 and 230 characters? Under 175 → too short, expand. Over 230 → too long, cut.
+  [ ] Line 2 length = total chars minus 165 = ___. Is it ≥ 60? If not → expand the bullet.
+  [ ] Does line 2 contain a meaningful clause (impact, mechanism, or scope)? If it's a short tail → rewrite.
+  [ ] Does PART 1 state a metric or measurable outcome? If not → rewrite
+  [ ] Does PART 2 name a specific tool AND explain the mechanism? If not → rewrite
+  [ ] Does PART 3 state the downstream business or team impact with specific context? If not → expand
+  [ ] Does the bullet answer "How?" and "So what?" for every clause? If any clause is open-ended → rewrite
+  [ ] Does it start with a BANNED verb? If yes → replace it
+  [ ] Is the project title a fair description of what was actually built? If inflated → fix it
+
+TOTAL BULLET COUNT CHECK:
+  [ ] Experience bullets total: ___ (must be ≤ 10 across all roles)
+  [ ] Project bullets total: ___ (must be ≤ 4)
+  [ ] Grand total: ___ (must be ≤ 14)
+  [ ] Any bullet over 230 characters? → cut to under 220
+  [ ] Any bullet under 175 characters? → expand using Option A, B, or C from RULE 3
+  [ ] Any bullet with line 2 under 60 chars? → expand that bullet
+  If any check fails → fix before outputting. Do not output a resume that fails these checks.
+
+Only output the JSON after all checks pass.
